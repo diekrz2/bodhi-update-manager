@@ -1,7 +1,7 @@
 [Desktop Entry]
 Version=1.0
 Type=Application
-Name=Package Installer
+Name=Bodhi Update Manager
 Comment=Install system updates and local packages for Bodhi Linux
 Exec=bodhi-update-manager %f
 Icon=bodhi-update-manager
@@ -9,9 +9,4 @@ Terminal=false
 MimeType=application/vnd.debian.binary-package;
 Categories=System;PackageManager;
 StartupNotify=true
-
-# Optional but recommended polish
-NoDisplay=false
-
-# Optional but recommended polish
 NoDisplay=false
