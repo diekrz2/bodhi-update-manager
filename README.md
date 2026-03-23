@@ -265,6 +265,7 @@ Bodhi Update Manager includes an optional system tray icon that can be launched 
 
 ```bash
 bodhi-update-manager-tray
+```
 
 ---
 
