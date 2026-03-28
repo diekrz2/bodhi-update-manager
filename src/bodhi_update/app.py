@@ -54,7 +54,7 @@ class UpdateManagerWindow(Gtk.Window):
     COL_RAW_NAME = 6
     COL_CATEGORY = 7
     COL_BACKEND = 8
-    COL_ICON = 9      # Unicode type icon (display only)
+    COL_ICON = 9       # GTK icon-name (symbolic)
     COL_RAW_SIZE = 10  # Raw byte count for exact size summation
     COL_DESC = 11      # Raw description text (for reliable toggle of pkg markup)
 
@@ -284,13 +284,17 @@ class UpdateManagerWindow(Gtk.Window):
         self.tree.set_fixed_height_mode(True)
         self.tree.set_hover_selection(False)
 
-        # Type icon column (leftmost) — visual shorthand for package category.
-        icon_renderer = Gtk.CellRendererText()
+        # Type icon column (leftmost) — symbolic GTK icons
+        icon_renderer = Gtk.CellRendererPixbuf()
         icon_renderer.set_property("xalign", 0.5)
-        icon_column = Gtk.TreeViewColumn(_("Type"), icon_renderer, text=self.COL_ICON)
+
+        icon_column = Gtk.TreeViewColumn(_("Type"), icon_renderer)
+        icon_column.add_attribute(icon_renderer, "icon-name", self.COL_ICON)
+
         icon_column.set_sizing(Gtk.TreeViewColumnSizing.FIXED)
         icon_column.set_fixed_width(48)
         icon_column.set_resizable(False)
+
         self.tree.append_column(icon_column)
 
         # Checkbox "Upgrade" column.
@@ -782,16 +786,16 @@ class UpdateManagerWindow(Gtk.Window):
 
     @staticmethod
     def _category_icon(category: str, backend: str) -> str:
-        """Return a Unicode icon representing the package type."""
+        """Return GTK symbolic icon name for category/backend."""
         if category == "security":
-            return "🔒"
+            return "security-high-symbolic"
         if category == "kernel":
-            return "⚙"
+            return "applications-system-symbolic"
         if category == "snap" or backend == "snap":
-            return "📸"
+            return "package-x-generic-symbolic"
         if category == "flatpak" or backend == "flatpak":
-            return "📦"
-        return "🗂"
+            return "package-x-generic-symbolic"
+        return "software-update-available-symbolic"
 
     @staticmethod
     def _build_pkg_markup(name: str, description: str, show_desc: bool) -> str:
