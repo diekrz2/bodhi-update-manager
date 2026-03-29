@@ -65,9 +65,13 @@ Built with **Python**, **GTK3**, and **VTE**, the application provides a unified
 
 ```bash
 dpkg-buildpackage -us -uc -b
-Install
+```
+## Install
+```
 sudo dpkg -i ../bodhi-update-manager_*.deb
-Run
+```
+## Run
+```
 bodhi-update-manager
 ```
 ## Dependencies
