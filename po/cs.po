@@ -20,348 +20,350 @@ msgstr ""
 
 #: src/bodhi_update/app.py:62 src/bodhi_update/app.py:483
 msgid "Bodhi Update Manager"
-msgstr ""
+msgstr "Bodhi Správce aktualizací"
 
 #: src/bodhi_update/app.py:131
 msgid "File"
-msgstr ""
+msgstr "Soubor"
 
 #: src/bodhi_update/app.py:134 src/bodhi_update/app.py:206
 msgid "Refresh"
-msgstr ""
+msgstr "Obnovit"
 
 #: src/bodhi_update/app.py:138 src/bodhi_update/app.py:210
 msgid "Install Selected"
-msgstr ""
+msgstr "Nainstalovat vybrané"
 
 #: src/bodhi_update/app.py:144 src/bodhi_update/app.py:202
 msgid "Select All"
-msgstr ""
+msgstr "Vybrat vše"
 
 #: src/bodhi_update/app.py:148 src/bodhi_update/app.py:198
 msgid "Clear"
-msgstr ""
+msgstr "Vyčistit"
 
 #: src/bodhi_update/app.py:154
 msgid "Quit"
-msgstr ""
+msgstr "Ukončit"
 
 #: src/bodhi_update/app.py:162
 msgid "Edit"
-msgstr ""
+msgstr "Upravit"
 
 #: src/bodhi_update/app.py:165 src/bodhi_update/app.py:415
 msgid "Preferences"
-msgstr ""
+msgstr "Předvolby"
 
 #: src/bodhi_update/app.py:173
 msgid "View"
-msgstr ""
+msgstr "Zobrazit"
 
 #: src/bodhi_update/app.py:176
 msgid "Show Descriptions"
-msgstr ""
+msgstr "Zobrazit popisy"
 
 #: src/bodhi_update/app.py:185
 msgid "Help"
-msgstr ""
+msgstr "Nápověda"
 
 #: src/bodhi_update/app.py:188
 msgid "About"
-msgstr ""
+msgstr "O aplikaci"
 
 #: src/bodhi_update/app.py:218
 msgid "All"
-msgstr ""
+msgstr "Vše"
 
 #: src/bodhi_update/app.py:219
 msgid "Security"
-msgstr ""
+msgstr "Zabezpečení"
 
 #: src/bodhi_update/app.py:220
 msgid "Kernel"
-msgstr ""
+msgstr "Jádro"
 
 #: src/bodhi_update/app.py:221
 msgid "System"
-msgstr ""
+msgstr "Systém"
 
 #: src/bodhi_update/app.py:242
 msgid "A system restart is required to complete the update."
-msgstr ""
+msgstr "Pro dokončení aktualizace je nutný restart systému."
 
 #: src/bodhi_update/app.py:246
 msgid "Restart Now"
-msgstr ""
+msgstr "Restartovat nyní"
 
 #: src/bodhi_update/app.py:290
 msgid "Type"
-msgstr ""
+msgstr "Typ"
 
 #: src/bodhi_update/app.py:300
 msgid "Upgrade"
-msgstr ""
+msgstr "Aktualizace"
 
 #: src/bodhi_update/app.py:311
 msgid "Package"
-msgstr ""
+msgstr "Balíček"
 
 #: src/bodhi_update/app.py:321
 msgid "Installed"
-msgstr ""
+msgstr "Nainstalováno"
 
 #: src/bodhi_update/app.py:326
 msgid "New"
-msgstr ""
+msgstr "Nové"
 
 #: src/bodhi_update/app.py:331
 msgid "Size"
-msgstr ""
+msgstr "Velikost"
 
 #: src/bodhi_update/app.py:336
 msgid "Repository"
-msgstr ""
+msgstr "Repozitář"
 
 #: src/bodhi_update/app.py:350 src/bodhi_update/app.py:1106
 msgid "Installing updates..."
-msgstr ""
+msgstr "Instalují se aktualizace..."
 
 #: src/bodhi_update/app.py:355 src/bodhi_update/app.py:362
 #: src/bodhi_update/app.py:965 src/bodhi_update/app.py:968
 msgid "Waiting for authentication..."
-msgstr ""
+msgstr "Čeká se na ověření..."
 
 #: src/bodhi_update/app.py:368 src/bodhi_update/app.py:972
 #: src/bodhi_update/app.py:1238
 msgid "Show Details"
-msgstr ""
+msgstr "Zobrazit podrobnosti"
 
 #: src/bodhi_update/app.py:372
 msgid "Back to Updates"
-msgstr ""
+msgstr "Zpět na aktualizace"
 
 #: src/bodhi_update/app.py:419
 msgid "Cancel"
-msgstr ""
+msgstr "Zrušit"
 
 #: src/bodhi_update/app.py:420
 msgid "Apply"
-msgstr ""
+msgstr "Použít"
 
 #: src/bodhi_update/app.py:433
 msgid "Show Snap updates"
-msgstr ""
+msgstr "Zobrazit Snap aktualizace"
 
 #: src/bodhi_update/app.py:438
 msgid "Show Flatpak updates"
-msgstr ""
+msgstr "Zobrazit Flatpak aktualizace"
 
 #: src/bodhi_update/app.py:461
 msgid "Preferences saved."
-msgstr ""
+msgstr "Předvolby uloženy."
 
 #: src/bodhi_update/app.py:467
 msgid "About Bodhi Update Manager"
-msgstr ""
+msgstr "O Správci aktualizací Bodhi"
 
 #: src/bodhi_update/app.py:471
 msgid "Close"
-msgstr ""
+msgstr "Zavřít"
 
 #: src/bodhi_update/app.py:488
 msgid "A lightweight system update tool for Bodhi Linux."
-msgstr ""
+msgstr "Lehký nástroj pro aktualizaci systému pro Bodhi Linux."
 
 #: src/bodhi_update/app.py:508
 msgid "Created by:"
-msgstr ""
+msgstr "Vytvořil:"
 
 #: src/bodhi_update/app.py:515
 msgid "GitHub Repository"
-msgstr ""
+msgstr "GitHub repozitář"
 
 #: src/bodhi_update/app.py:624
 msgid "Restart required."
-msgstr ""
+msgstr "Vyžaduje se restart."
 
 #: src/bodhi_update/app.py:624
 msgid "Ready"
-msgstr ""
+msgstr "Připraveno"
 
 #: src/bodhi_update/app.py:658
 #, python-format
 msgid "%(message)s  Restart required."
-msgstr ""
+msgstr "%(message)s  Vyžaduje se restart."
 
 #: src/bodhi_update/app.py:667
 msgid "System is up to date. Cached package data shown."
-msgstr ""
+msgstr "Systém je aktuální. Zobrazena uložená data balíčků."
 
 #: src/bodhi_update/app.py:669
 msgid "System is up to date."
-msgstr ""
+msgstr "Systém je aktuální."
 
 #: src/bodhi_update/app.py:678 src/bodhi_update/app.py:748
 msgid "Unknown"
-msgstr ""
+msgstr "Neznámé"
 
 #: src/bodhi_update/app.py:683
 #, python-format
 msgid "%(count)d update available · Download: %(size)s"
 msgid_plural "%(count)d updates available · Download: %(size)s"
-msgstr[0] ""
-msgstr[1] ""
-msgstr[2] ""
+msgstr[0] "%(count)d aktualizace k dispozici · Stáhnout: %(size)s"
+msgstr[1] "%(count)d aktualizace k dispozici · Stáhnout: %(size)s"
+msgstr[2] "%(count)d aktualizací k dispozici · Stáhnout: %(size)s"
 
 #: src/bodhi_update/app.py:691
 #, python-format
 msgid "%(message)s · Cached package data"
-msgstr ""
+msgstr "%(message)s · Uložená data balíčků"
 
 #: src/bodhi_update/app.py:703
 #, python-format
 msgid "%(message)s (includes %(extras)s)"
-msgstr ""
+msgstr "%(message)s (zahrnuje %(extras)s)"
 
 #: src/bodhi_update/app.py:751
 #, python-format
 msgid "%(count)d update selected · Download: %(size)s"
 msgid_plural "%(count)d updates selected · Download: %(size)s"
-msgstr[0] ""
-msgstr[1] ""
-msgstr[2] ""
+msgstr[0] "%(count)d aktualizace vybrána · Stáhnout: %(size)s"
+msgstr[1] "%(count)d aktualizace vybrány · Stáhnout: %(size)s"
+msgstr[2] "%(count)d aktualizací vybráno · Stáhnout: %(size)s"
 
 #: src/bodhi_update/app.py:808 src/bodhi_update/app.py:840
 msgid "System package"
-msgstr ""
+msgstr "Systémový balíček"
 
 #: src/bodhi_update/app.py:823
 msgid "N/A"
-msgstr ""
+msgstr "N/A"
 
 #: src/bodhi_update/app.py:872
 msgid "Failed to read cached package information."
-msgstr ""
+msgstr "Nepodařilo se načíst uložené informace o balíčcích."
 
 #: src/bodhi_update/app.py:889
 #, python-format
 msgid "Refresh finished. %d updates. Success: %s"
-msgstr ""
+msgstr "Obnovení dokončeno. %d aktualizací. Hotovo: %s"
 
 #: src/bodhi_update/app.py:902
 #, python-format
 msgid "%(current_status)s — Warning: %(message)s"
-msgstr ""
+msgstr "%(current_status)s — Varování: %(message)s"
 
 #: src/bodhi_update/app.py:936
 msgid "Package lists refreshed."
-msgstr ""
+msgstr "Seznam balíčků obnoven."
 
 #: src/bodhi_update/app.py:940
 #, python-format
 msgid "Finished querying backends. Total updates: %d"
-msgstr ""
+msgstr "Dotazování backendů dokončeno. Celkem aktualizací: %d"
 
 #: src/bodhi_update/app.py:1006
 #, python-format
 msgid "Starting installation: %s"
-msgstr ""
+msgstr "Spouští se instalace: %s"
 
 #: src/bodhi_update/app.py:1007
 #, python-format
 msgid "Command: %s"
-msgstr ""
+msgstr "Příkaz: %s"
 
 #: src/bodhi_update/app.py:1009
 msgid "Installation started."
-msgstr ""
+msgstr "Instalace zahájena."
 
 #: src/bodhi_update/app.py:1015 src/bodhi_update/app.py:1029
 #, python-format
 msgid "Installing %(deb_name)s..."
-msgstr ""
+msgstr "Instaluje se %(deb_name)s..."
 
 #: src/bodhi_update/app.py:1023 src/bodhi_update/app.py:1048
 msgid "Failed"
-msgstr ""
+msgstr "Selhalo"
 
 #: src/bodhi_update/app.py:1025
 #, python-format
 msgid "Validation failed: %(exc)s"
-msgstr ""
+msgstr "Ověření selhalo: %(exc)s"
 
 #: src/bodhi_update/app.py:1033
 msgid "Installation completed successfully."
-msgstr ""
+msgstr "Instalace byla úspěšně dokončena."
 
 #: src/bodhi_update/app.py:1036
 msgid "Complete"
-msgstr ""
+msgstr "Dokončeno"
 
 #: src/bodhi_update/app.py:1037 src/bodhi_update/app.py:1038
 msgid "Updates installed successfully."
-msgstr ""
+msgstr "Aktualizace byly úspěšně nainstalovány."
 
 #: src/bodhi_update/app.py:1045
 #, python-format
 msgid "Installation failed with exit code: %s"
-msgstr ""
+msgstr "Instalace selhala s návratovým kódem: %s"
 
 #: src/bodhi_update/app.py:1050
 #, python-format
 msgid "Update failed. Exit code: %(exit_code)s. See Details below."
-msgstr ""
+msgstr "Aktualizace selhala. Kód: %(exit_code)s. Viz podrobnosti níže."
 
 #: src/bodhi_update/app.py:1056 src/bodhi_update/app.py:1111
 #: src/bodhi_update/app.py:1238
 msgid "Hide Details"
-msgstr ""
+msgstr "Skrýt podrobnosti"
 
 #: src/bodhi_update/app.py:1057
 #, python-format
 msgid "Update failed. Exit code: %(exit_code)s"
-msgstr ""
+msgstr "Aktualizace selhala. Kód: %(exit_code)s"
 
 #: src/bodhi_update/app.py:1081
 msgid "No privilege tool found. Please reboot manually."
-msgstr ""
+msgstr "Nebyl nalezen nástroj pro oprávnění. Restartujte ručně."
 
 #: src/bodhi_update/app.py:1088
 #, python-format
 msgid "Failed to initiate reboot: %(exc)s"
-msgstr ""
+msgstr "Nepodařilo se zahájit restart: %(exc)s"
 
 #: src/bodhi_update/app.py:1105
 msgid "This may take a few minutes."
-msgstr ""
+msgstr "Může to trvat několik minut."
 
 #: src/bodhi_update/app.py:1179
 msgid "Checking for updates..."
-msgstr ""
+msgstr "Kontrolují se aktualizace..."
 
 #: src/bodhi_update/app.py:1180
 msgid "Starting background refresh for updates."
-msgstr ""
+msgstr "Spouští se obnovení aktualizací na pozadí."
 
 #: src/bodhi_update/app.py:1199
 msgid "Primary backend (APT) is not configured."
-msgstr ""
+msgstr "Primární backend (APT) není nakonfigurován."
 
 #: src/bodhi_update/app.py:1203
 msgid ""
 "Installing from multiple package sources simultaneously is not yet "
 "supported. Please select packages from one source type only."
 msgstr ""
+"Instalace z více zdrojů balíčků současně zatím není podporována. "
+"Vyberte balíčky pouze z jednoho typu zdroje."
 
 #: src/bodhi_update/app.py:1213
 #, python-format
 msgid "Requested installation for unknown backend: %(backend_id)s"
-msgstr ""
+msgstr "Požadována instalace pro neznámý backend: %(backend_id)s"
 
 #: src/bodhi_update/app.py:1224
 msgid "No packages selected."
-msgstr ""
+msgstr "Nebyly vybrány žádné balíčky."
 
 #: src/bodhi_update/app.py:1233
 msgid "Installing selected updates..."
-msgstr ""
+msgstr "Instalují se vybrané aktualizace..."
