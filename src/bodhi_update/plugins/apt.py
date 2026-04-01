@@ -265,6 +265,17 @@ class AptBackend(UpdateBackend):
 
     def get_updates(self) -> Tuple[List[UpdateItem], int]:
         """Read the local APT cache and return ``(updates, total_download_bytes)``."""
+        # Query the real persistent hold state once for the whole call.
+        try:
+            _result = subprocess.run(
+                ["apt-mark", "showhold"],
+                stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                text=True, timeout=10,
+            )
+            held_names: set[str] = set(_result.stdout.split())
+        except Exception:  # pylint: disable=broad-except
+            held_names = set()
+
         cache = apt.Cache()
         cache.open()
 
@@ -280,6 +291,7 @@ class AptBackend(UpdateBackend):
             size = pkg.candidate.size if pkg.candidate else 0
             origin = _get_origin_name(pkg)
             summary = pkg.candidate.summary if pkg.candidate else ""
+            is_held = pkg.name in held_names
 
             category = _determine_category(pkg.name, origin)
 
@@ -292,10 +304,12 @@ class AptBackend(UpdateBackend):
                 backend="apt",
                 category=category,
                 description=summary,
+                held=is_held,
             )
 
             updates.append(item)
-            total_bytes += size
+            if not is_held:
+                total_bytes += size
 
         updates.sort(key=_sort_key)
         return updates, total_bytes

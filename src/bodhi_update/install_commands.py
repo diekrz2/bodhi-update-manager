@@ -97,3 +97,17 @@ def build_deb_install_argv(deb_path: str) -> list[str]:
     tool = _privilege_tool()
     helper = get_helper_path()
     return [tool, helper, "install-deb", norm_path]
+
+
+def build_hold_argv(package: str, *, hold: bool) -> list[str]:
+    """Return the argv for hold or unhold of a single APT package via the helper.
+
+    Args:
+        package: Debian package name to act on.
+        hold: True to place the package on hold; False to remove the hold.
+    """
+    tool = _privilege_tool()
+    helper = get_helper_path()
+    action = "hold" if hold else "unhold"
+    return [tool, helper, action, package]
+

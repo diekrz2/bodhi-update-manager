@@ -17,13 +17,14 @@ log = logging.getLogger("bodhi-update-manager")
 # gi.require_version() must be called before any gi.repository imports.
 import gi  # noqa: E402
 
+gi.require_version("Gdk", "3.0")
 gi.require_version("Gtk", "3.0")
 gi.require_version("Vte", "2.91")
-from gi.repository import Gio, GLib, Gtk, Pango, Vte  # noqa: E402
+from gi.repository import Gdk, Gio, GLib, Gtk, Pango, Vte  # noqa: E402
 
 from bodhi_update._version import __version__  # noqa: E402
 from bodhi_update.backends import get_registry, initialize_registry  # noqa: E402
-from bodhi_update.install_commands import build_deb_install_argv  # noqa: E402
+from bodhi_update.install_commands import build_deb_install_argv, build_hold_argv, build_upgrade_argv  # noqa: E402
 from bodhi_update.models import UpdateItem  # noqa: E402
 from bodhi_update.utils import (  # noqa: E402
     find_privilege_tool,
@@ -81,10 +82,11 @@ class UpdateManagerWindow(Gtk.Window):
     COL_ICON = 9       # GTK icon-name (symbolic)
     COL_RAW_SIZE = 10  # Raw byte count for exact size summation
     COL_DESC = 11      # Raw description text (for reliable toggle of pkg markup)
+    COL_HELD = 12      # bool — True when the APT package is on hold
 
     def __init__(self, deb_path: str | None = None) -> None:
         super().__init__(title=_("Update Manager"))
-        self.set_default_size(1100, 700)
+        self._apply_adaptive_window_size()
         self.set_icon_name("bodhi-update-manager")
         self.set_position(Gtk.WindowPosition.CENTER)
 
@@ -119,7 +121,7 @@ class UpdateManagerWindow(Gtk.Window):
         """
         initialize_registry()
 
-        self.store = Gtk.ListStore(bool, str, str, str, str, str, str, str, str, str, int, str)
+        self.store = Gtk.ListStore(bool, str, str, str, str, str, str, str, str, str, int, str, bool)
         self.filter_model = self.store.filter_new()
         self.filter_model.set_visible_func(self._category_filter_func)
 
@@ -372,6 +374,7 @@ class UpdateManagerWindow(Gtk.Window):
 
         scroller.add(self.tree)
         self.updates_page.pack_start(scroller, True, True, 0)
+        self.tree.connect("button-press-event", self._on_tree_button_press)
 
     def _build_install_page(self) -> None:
         self.install_page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
@@ -459,6 +462,14 @@ class UpdateManagerWindow(Gtk.Window):
         # Optional backend visibility — only show toggles for registered backends.
         _registered_ids = {b.backend_id for b in get_registry().get_all_backends()}
 
+        notif_check = Gtk.CheckButton(label=_("Show notifications"))
+        notif_check.set_active(self.prefs.get("show_notifications", True))
+        box.pack_start(notif_check, False, False, 0)
+
+        held_check = Gtk.CheckButton(label=_("Show held packages"))
+        held_check.set_active(self.prefs.get("show_held_packages", False))
+        box.pack_start(held_check, False, False, 0)
+
         snap_check: Gtk.CheckButton | None = None
         flatpak_check: Gtk.CheckButton | None = None
 
@@ -477,6 +488,20 @@ class UpdateManagerWindow(Gtk.Window):
 
         if response == Gtk.ResponseType.APPLY:
             changed = False
+
+            new_notif = notif_check.get_active()
+            if self.prefs.get("show_notifications", True) != new_notif:
+                self.prefs["show_notifications"] = new_notif
+                changed = True
+                if not new_notif:
+                    _app = self.get_application()
+                    if _app is not None and getattr(_app, "_tray", None) is not None:
+                        _app._tray.set_update_count(0)
+
+            new_held = held_check.get_active()
+            if self.prefs.get("show_held_packages", False) != new_held:
+                self.prefs["show_held_packages"] = new_held
+                changed = True
 
             if snap_check is not None:
                 new_val = snap_check.get_active()
@@ -637,7 +662,8 @@ class UpdateManagerWindow(Gtk.Window):
             for row in self.store:
                 name = row[self.COL_RAW_NAME]
                 desc = row[self.COL_DESC]
-                row[self.COL_PACKAGE] = self._build_pkg_markup(name, desc, show_desc)
+                held = row[self.COL_HELD]
+                row[self.COL_PACKAGE] = self._build_pkg_markup(name, desc, show_desc, held)
         finally:
             self.store.thaw_notify()
 
@@ -652,6 +678,8 @@ class UpdateManagerWindow(Gtk.Window):
     def _load_prefs(self) -> Dict[str, bool]:
         defaults: Dict[str, bool] = {
             "show_descriptions": True,
+            "show_notifications": True,
+            "show_held_packages": False,
             "show_snap": True,
             "show_flatpak": True,
         }
@@ -699,6 +727,45 @@ class UpdateManagerWindow(Gtk.Window):
         column.set_alignment(0.0)
         return column
 
+    def _apply_adaptive_window_size(self) -> None:
+        """Choose a sane initial window size based on the current monitor workarea.
+
+        Uses the monitor workarea so panels/docks are respected. The window starts
+        at a comfortable preferred size on normal desktops, but clamps down on
+        smaller screens / VMs instead of assuming lots of space.
+        """
+        preferred_w = 1100
+        preferred_h = 700
+        min_w = 760
+        min_h = 520
+
+        width = preferred_w
+        height = preferred_h
+
+        try:
+            screen = Gdk.Screen.get_default()
+            if screen is not None:
+                monitor_num = screen.get_primary_monitor()
+                if monitor_num < 0:
+                    monitor_num = 0
+
+                workarea = screen.get_monitor_workarea(monitor_num)
+                max_w = max(min_w, workarea.width - margin)
+                max_h = max(min_h, workarea.height - margin)
+
+                # shrink if the monitor/workarea is too small
+                width = min(preferred_w, max_w)
+                height = min(preferred_h, max_h)
+
+                width = max(min_w, width)
+                height = max(min_h, height)
+        except Exception:  # pylint: disable=broad-except
+            # Fall back to the preferred size if monitor detection fails.
+            width = preferred_w
+            height = preferred_h
+
+        self.set_default_size(width, height)
+
     def _ready_status_text(self) -> str:
         return _("Restart required.") if reboot_required() else _("Ready")
 
@@ -726,6 +793,12 @@ class UpdateManagerWindow(Gtk.Window):
         self.refresh_in_progress = busy
         self._update_action_sensitivity()
 
+    def _notify_tray(self, count: int, severity: str = "medium") -> None:
+        """Forward update count and severity to the tray icon badge (no-op if no tray)."""
+        app = self.get_application()
+        if app is not None and getattr(app, "_tray", None) is not None:
+            app._tray.set_update_count(count, severity)
+
     def _set_install_busy(self, busy: bool) -> None:
         self.install_in_progress = busy
         self._update_action_sensitivity()
@@ -743,10 +816,11 @@ class UpdateManagerWindow(Gtk.Window):
     ) -> None:
         if count == 0:
             self._set_status(
-                _("System is up to date. Cached package data shown.")
+                _("System is up to date. No pending updates in cached package data.")
                 if cached
                 else _("System is up to date.")
             )
+            self._notify_tray(0, "low")
             return
 
         has_unknown_size = any(
@@ -767,7 +841,7 @@ class UpdateManagerWindow(Gtk.Window):
 		    "size": size_str
         }
         if cached:
-            message = _("%(message)s · Cached package data") % {"message": message}
+            message = _("%(message)s · Cached data — refresh to check for newer updates") % {"message": message}
 				
         # Give a lightweight hint if optional backends found anything.
         extras = []
@@ -784,6 +858,22 @@ class UpdateManagerWindow(Gtk.Window):
         "extras": ", ".join(extras)
 		}
         self._set_status(message)
+        # Derive badge severity from the already-populated store (highest wins).
+        # Held packages are excluded — they are non-actionable.
+        from bodhi_update.tray import _pkg_severity  # noqa: PLC0415
+        severity = "low"
+        actionable_count = 0
+        for row in self.store:
+            if row[self.COL_HELD]:
+                continue
+            actionable_count += 1
+            s = _pkg_severity(row[self.COL_RAW_NAME], row[self.COL_CATEGORY], row[self.COL_BACKEND])
+            if s == "high":
+                severity = "high"
+                break
+            elif s == "medium":
+                severity = "medium"
+        self._notify_tray(actionable_count, severity)
 
     def _refresh_selection_status(self) -> None:
         """Update the status bar to reflect the current checkbox selection.
@@ -838,8 +928,125 @@ class UpdateManagerWindow(Gtk.Window):
         self._set_status(message)
 	
     # ------------------------------------------------------------------ #
+    # Context menu (right-click hold/unhold)                               #
+    # ------------------------------------------------------------------ #
+
+    def _on_tree_button_press(self, widget: Gtk.TreeView, event: object) -> bool:
+        """Show APT hold/unhold context menu on right-click."""
+        import gi  # noqa: PLC0415
+        gi.require_version("Gdk", "3.0")
+        from gi.repository import Gdk  # noqa: PLC0415
+        if event.type != Gdk.EventType.BUTTON_PRESS or event.button != 3:
+            return False
+        result = widget.get_path_at_pos(int(event.x), int(event.y))
+        if result is None:
+            return False
+        path, *_ = result
+        f_iter = self.filter_model.get_iter(path)
+        row = self.filter_model[f_iter]
+        if row[self.COL_BACKEND] != "apt":
+            return False
+        self._show_hold_menu(event, row[self.COL_RAW_NAME], row[self.COL_HELD])
+        return True
+
+    def _show_hold_menu(self, event: object, pkg_name: str, is_held: bool) -> None:
+        label = _("Unhold package") if is_held else _("Hold package")
+        menu = Gtk.Menu()
+        item = Gtk.ImageMenuItem(label=label)
+        img = Gtk.Image.new_from_icon_name("changes-prevent-symbolic", Gtk.IconSize.MENU)
+        item.set_image(img)
+        item.set_always_show_image(True)
+        item.connect("activate", lambda _: self._do_hold_toggle(pkg_name, not is_held))
+        menu.append(item)
+        menu.show_all()
+        menu.popup_at_pointer(event)
+
+    def _reload_apt_rows(self) -> None:
+        """Refresh APT rows only, preserving non-APT rows already in the store."""
+        # Snapshot non-APT rows so they survive the store clear.
+        non_apt = [list(row) for row in self.store if row[self.COL_BACKEND] != "apt"]
+
+        apt_updates: List[UpdateItem] = []
+        apt_bytes = 0
+        for backend in get_registry().get_all_backends():
+            if backend.backend_id != "apt":
+                continue
+            try:
+                items, b = backend.get_updates()
+                apt_updates.extend(items)
+                apt_bytes += b
+            except Exception:  # pylint: disable=broad-except
+                pass
+
+        show_desc = self.prefs.get("show_descriptions", True)
+        self.store.freeze_notify()
+        try:
+            self.store.clear()
+            # Re-insert non-APT rows verbatim.
+            for row in non_apt:
+                self.store.append(row)
+            # Insert fresh APT rows.
+            for update in apt_updates:
+                held = update.held
+                icon = self._category_icon(update.category, update.backend, held)
+                pkg_markup = self._build_pkg_markup(update.name, update.description, show_desc, held)
+                size_str = format_size(update.size)
+                self.store.append([
+                    False, pkg_markup, update.installed_version, update.candidate_version,
+                    size_str, update.origin, update.name, update.category, update.backend,
+                    icon, update.size, update.description or _("System package"), held,
+                ])
+        finally:
+            self.store.thaw_notify()
+
+        non_apt_bytes = sum(row[self.COL_RAW_SIZE] for row in self.store if row[self.COL_BACKEND] != "apt")
+        actionable = sum(
+            1 for row in self.store if not row[self.COL_HELD]
+        )
+        self._update_count_status(actionable, apt_bytes + non_apt_bytes, cached=True)
+
+    def _do_hold_toggle(self, pkg_name: str, hold: bool) -> None:
+        """Run apt-mark hold/unhold via the privilege helper in a background thread."""
+        if self.refresh_in_progress or self.install_in_progress:
+            return
+
+        def _worker() -> None:
+            import subprocess  # noqa: PLC0415
+            try:
+                argv = build_hold_argv(pkg_name, hold=hold)
+            except RuntimeError as exc:
+                GLib.idle_add(self._set_status, str(exc))
+                return
+            result = subprocess.run(argv, capture_output=True)
+            if result.returncode != 0:
+                err = (result.stderr or b"").decode(errors="replace").strip().splitlines()
+                msg = err[0] if err else _("apt-mark failed (unknown error)")
+                GLib.idle_add(self._set_status, msg)
+            else:
+                if hold:
+                    status = _("Package '%(name)s' is now held.") % {"name": pkg_name}
+                else:
+                    status = _("Package '%(name)s' is no longer held.") % {"name": pkg_name}
+                GLib.idle_add(self._reload_apt_rows)
+                GLib.idle_add(self._set_status, status)
+                GLib.timeout_add_seconds(3, self._restore_current_update_status)
+
+        threading.Thread(target=_worker, daemon=True).start()
+
+    # ------------------------------------------------------------------ #
     # Store / data helpers                                                 #
     # ------------------------------------------------------------------ #
+
+    def _restore_current_update_status(self) -> bool:
+        """Recompute the normal status line from the current store state."""
+        if any(row[self.COL_SELECTED] for row in self.store):
+            return False  # user made a selection; leave their status line alone
+        total_bytes = sum(
+            row[self.COL_RAW_SIZE] for row in self.store if not row[self.COL_HELD]
+        )
+        actionable = sum(1 for row in self.store if not row[self.COL_HELD])
+        self._update_count_status(actionable, total_bytes, cached=True)
+        return False  # one-shot: remove the timeout source
 
     def _category_filter_func(
         self, model: Gtk.TreeModel, iter_: Gtk.TreeIter, _data: object
@@ -849,6 +1056,9 @@ class UpdateManagerWindow(Gtk.Window):
         if row_backend == "snap" and not self.prefs.get("show_snap", True):
             return False
         if row_backend == "flatpak" and not self.prefs.get("show_flatpak", True):
+            return False
+        # Hide held APT packages unless show_held_packages is enabled.
+        if model[iter_][self.COL_HELD] and not self.prefs.get("show_held_packages", False):
             return False
         category_id = self.category_combo.get_active_id()
         if not category_id or category_id == "all":
@@ -860,8 +1070,10 @@ class UpdateManagerWindow(Gtk.Window):
         self.store.clear()
 
     @staticmethod
-    def _category_icon(category: str, backend: str) -> str:
+    def _category_icon(category: str, backend: str, held: bool = False) -> str:
         """Return GTK symbolic icon name for category/backend."""
+        if held:
+            return "changes-prevent-symbolic"
         if category == "security":
             return "security-high-symbolic"
         if category == "kernel":
@@ -873,31 +1085,27 @@ class UpdateManagerWindow(Gtk.Window):
         return "software-update-available-symbolic"
 
     @staticmethod
-    def _build_pkg_markup(name: str, description: str, show_desc: bool) -> str:
-        """Return Pango markup for the Package column.
-
-        The package name is always rendered bold.  When *show_desc* is True a
-        second line containing the description is appended in a smaller style.
-        Both inputs are escaped so that any special characters in real package
-        names or summaries cannot break the markup.
-        """
+    def _build_pkg_markup(name: str, description: str, show_desc: bool, held: bool = False) -> str:
+        """Return Pango markup for the Package column."""
         name_esc = GLib.markup_escape_text(name)
         markup = f"<b>{name_esc}</b>"
         if show_desc:
-            desc_esc = GLib.markup_escape_text(description or _("System package"))
+            hint = _("Held package") if held else (description or _("System package"))
+            desc_esc = GLib.markup_escape_text(hint)
             markup += f"\n<small>{desc_esc}</small>"
+        elif held:
+            markup += f"\n<small>{GLib.markup_escape_text(_("Held package"))}</small>"
         return markup
 
     def _populate_store(self, updates: List[UpdateItem]) -> None:
-        # Freeze signal emission while batch-populating to avoid per-row
-        # redraws, which is especially noticeable with large update lists.
         self.store.freeze_notify()
         try:
             self.store.clear()
             show_desc = self.prefs.get("show_descriptions", True)
             for update in updates:
-                icon = self._category_icon(update.category, update.backend)
-                pkg_markup = self._build_pkg_markup(update.name, update.description, show_desc)
+                held = getattr(update, "held", False)
+                icon = self._category_icon(update.category, update.backend, held)
+                pkg_markup = self._build_pkg_markup(update.name, update.description, show_desc, held)
                 size_str = (
                     _("N/A")
                     if update.size == 0 and update.backend != "apt"
@@ -906,17 +1114,18 @@ class UpdateManagerWindow(Gtk.Window):
                 self.store.append(
                     [
                         False,           # COL_SELECTED
-                        pkg_markup,      # COL_PACKAGE  (Pango markup, rebuilt on toggle)
+                        pkg_markup,      # COL_PACKAGE
                         update.installed_version,  # COL_INSTALLED
                         update.candidate_version,  # COL_NEW
-                        size_str,        # COL_SIZE     (formatted string)
+                        size_str,        # COL_SIZE
                         update.origin,   # COL_REPO
-                        update.name,     # COL_RAW_NAME (plain name for install routing)
-                        update.category,  # COL_CATEGORY
+                        update.name,     # COL_RAW_NAME
+                        update.category, # COL_CATEGORY
                         update.backend,  # COL_BACKEND
                         icon,            # COL_ICON
-                        update.size,     # COL_RAW_SIZE (bytes; 0 for non-reporting backends)
-                        update.description or _("System package"),  # COL_DESC (raw, for toggle)
+                        update.size,     # COL_RAW_SIZE
+                        update.description or _("System package"),  # COL_DESC
+                        held,            # COL_HELD
                     ]
                 )
         finally:
@@ -952,7 +1161,8 @@ class UpdateManagerWindow(Gtk.Window):
             return
 
         self._populate_store(updates)
-        self._update_count_status(len(updates), total_bytes, cached=True)
+        actionable = sum(1 for u in updates if not getattr(u, "held", False))
+        self._update_count_status(actionable, total_bytes, cached=True)
 
     # ------------------------------------------------------------------ #
     # Refresh flow                                                         #
@@ -973,7 +1183,8 @@ class UpdateManagerWindow(Gtk.Window):
 
         # Always update the count status so the total "N updates available" is shown.
         # If the refresh failed the displayed data comes from the prior cache.
-        self._update_count_status(len(updates), total_bytes, cached=(not ok))
+        actionable = sum(1 for u in updates if not getattr(u, "held", False))
+        self._update_count_status(actionable, total_bytes, cached=(not ok))
 
         if not ok and message:
             # Append the failure message to the status rather than overwriting the count
@@ -1331,6 +1542,10 @@ class UpdateManagerWindow(Gtk.Window):
         filter_iter = self.filter_model.get_iter(path)
         child_iter = self.filter_model.convert_iter_to_child_iter(filter_iter)
 
+        # Do not allow selecting held packages — they cannot be installed.
+        if self.store[child_iter][self.COL_HELD]:
+            return
+
         current = self.store[child_iter][self.COL_SELECTED]
         self.store[child_iter][self.COL_SELECTED] = not current
         self._refresh_selection_status()
@@ -1348,12 +1563,14 @@ class UpdateManagerWindow(Gtk.Window):
         if self.refresh_in_progress or self.install_in_progress:
             return
 
-        # Collect paths first for safe iteration when modifying underlying store
+        # Collect paths first for safe iteration when modifying underlying store.
+        # Skip held packages — they cannot be installed.
         paths = [row.path for row in self.filter_model]
         for path in paths:
             f_iter = self.filter_model.get_iter(path)
             c_iter = self.filter_model.convert_iter_to_child_iter(f_iter)
-            self.store[c_iter][self.COL_SELECTED] = True
+            if not self.store[c_iter][self.COL_HELD]:
+                self.store[c_iter][self.COL_SELECTED] = True
 
         self._refresh_selection_status()
 

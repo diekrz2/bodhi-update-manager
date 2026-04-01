@@ -11,6 +11,8 @@ Supported commands:
   upgrade                  -- apt-get full-upgrade
   install <pkg> [<pkg>...] -- apt-get install -y <packages>
   install-deb <path>       -- apt-get install <absolute .deb path>
+  hold <pkg>               -- apt-mark hold <package>
+  unhold <pkg>             -- apt-mark unhold <package>
   reboot                   -- systemctl reboot
 
 Auth handshake (non-reboot commands only):
@@ -164,15 +166,42 @@ def _cmd_reboot(args: list[str], sentinel_path: str | None) -> int:
     return result.returncode
 
 
-# ---------------------------------------------------------------------------
-# Entry point
-# ---------------------------------------------------------------------------
+def _cmd_hold(args: list[str], sentinel_path: str | None) -> int:
+    """apt-mark hold <package>."""
+    if len(args) != 1:
+        print("error: 'hold' requires exactly one package name.", file=sys.stderr)
+        return 1
+    try:
+        _validate_package_name(args[0])
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    result = subprocess.run(["apt-mark", "hold", args[0]], check=False)
+    return result.returncode
+
+
+def _cmd_unhold(args: list[str], sentinel_path: str | None) -> int:
+    """apt-mark unhold <package>."""
+    if len(args) != 1:
+        print("error: 'unhold' requires exactly one package name.", file=sys.stderr)
+        return 1
+    try:
+        _validate_package_name(args[0])
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    result = subprocess.run(["apt-mark", "unhold", args[0]], check=False)
+    return result.returncode
+
+
 
 _COMMANDS = {
     "refresh": _cmd_refresh,
     "upgrade": _cmd_upgrade,
     "install": _cmd_install,
     "install-deb": _cmd_install_deb,
+    "hold": _cmd_hold,
+    "unhold": _cmd_unhold,
     "reboot": _cmd_reboot,
 }
 

@@ -15,3 +15,4 @@ class UpdateItem:
     backend: str
     category: str
     description: str = ""
+    held: bool = False
