@@ -10,7 +10,7 @@ Supported commands:
   refresh                  -- apt-get update
   upgrade                  -- apt-get full-upgrade
   install <pkg> [<pkg>...] -- apt-get install -y <packages>
-  install-deb <path>       -- apt-get install -y <absolute .deb path>
+  install-deb <path>       -- apt-get install <absolute .deb path>
   reboot                   -- systemctl reboot
 
 Auth handshake (non-reboot commands only):
@@ -130,7 +130,11 @@ def _cmd_install(args: list[str], sentinel_path: str | None) -> int:
 
 
 def _cmd_install_deb(args: list[str], sentinel_path: str | None) -> int:
-    """apt-get install -y <absolute .deb path>."""
+    """apt-get install <absolute .deb path>.
+
+    -y is intentionally omitted so that debconf/ncurses configuration dialogs
+    are not suppressed and the VTE terminal can relay them interactively.
+    """
     if len(args) != 1:
         print("error: 'install-deb' requires exactly one .deb path.", file=sys.stderr)
         return 1
@@ -142,8 +146,9 @@ def _cmd_install_deb(args: list[str], sentinel_path: str | None) -> int:
         return 1
 
     _signal_auth_success(sentinel_path)
+    # No -y: allow debconf prompts so the VTE terminal can handle them.
     result = subprocess.run(
-        ["apt-get", "install", "-y", norm_path],
+        ["apt-get", "install", norm_path],
         check=False,
     )
     return result.returncode
