@@ -158,7 +158,10 @@ class UpdateManagerWindow(Gtk.Window):
             self.show_all()
             self.install_details_revealer.set_reveal_child(False)
             self.reboot_info_bar.hide()
-            GLib.idle_add(self._load_cached_updates_on_startup)
+            self._set_updates_loading(True)
+            threading.Thread(
+                target=self._load_cached_updates_on_startup, daemon=True
+            ).start()
 
         return False
 
@@ -399,7 +402,26 @@ class UpdateManagerWindow(Gtk.Window):
         )
 
         scroller.add(self.tree)
-        self.updates_page.pack_start(scroller, True, True, 0)
+
+        # Loading page: spinner only, centred. Status bar carries the text.
+        loading_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
+        loading_box.set_halign(Gtk.Align.CENTER)
+        loading_box.set_valign(Gtk.Align.CENTER)
+        self._loading_spinner = Gtk.Spinner()
+        self._loading_spinner.set_size_request(32, 32)
+        loading_box.pack_start(self._loading_spinner, False, False, 0)
+
+        # Nested stack: "loading" vs "list".
+        self.updates_stack = Gtk.Stack()
+        self.updates_stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
+        self.updates_stack.set_transition_duration(150)
+        self.updates_stack.set_hexpand(True)
+        self.updates_stack.set_vexpand(True)
+        self.updates_stack.add_named(loading_box, "loading")
+        self.updates_stack.add_named(scroller, "list")
+        self.updates_stack.set_visible_child_name("list")
+
+        self.updates_page.pack_start(self.updates_stack, True, True, 0)
         self.tree.connect("button-press-event", self._on_tree_button_press)
 
     def _build_install_page(self) -> None:
@@ -814,12 +836,20 @@ class UpdateManagerWindow(Gtk.Window):
 
     def _update_action_sensitivity(self) -> None:
         is_updates = self.stack.get_visible_child_name() == "updates"
-        sensitive = not self.refresh_in_progress and not self.install_in_progress and is_updates
+        updates_loading = getattr(self, "_updates_loading", False)
+        sensitive = (
+            not self.refresh_in_progress
+            and not self.install_in_progress
+            and not updates_loading
+            and is_updates
+        )
 
         self.check_button.set_sensitive(sensitive)
         self.install_selected_button.set_sensitive(sensitive)
         self.clear_button.set_sensitive(sensitive)
         self.select_all_button.set_sensitive(sensitive)
+        if hasattr(self, "category_combo"):
+            self.category_combo.set_sensitive(sensitive)
 
         if hasattr(self, "refresh_menu_item"):
             self.refresh_menu_item.set_sensitive(sensitive)
@@ -827,6 +857,18 @@ class UpdateManagerWindow(Gtk.Window):
             self.select_all_menu_item.set_sensitive(sensitive)
             self.clear_menu_item.set_sensitive(sensitive)
             self.show_desc_menu_item.set_sensitive(sensitive)
+
+    def _set_updates_loading(self, loading: bool) -> None:
+        """Switch the updates view between the loading and list pages."""
+        self._updates_loading = loading
+        if loading:
+            self.updates_stack.set_visible_child_name("loading")
+            self._loading_spinner.start()
+            self._set_status(_("Loading updates..."))
+        else:
+            self._loading_spinner.stop()
+            self.updates_stack.set_visible_child_name("list")
+        self._update_action_sensitivity()
 
     def _set_refresh_busy(self, busy: bool) -> None:
         self.refresh_in_progress = busy
@@ -1252,13 +1294,12 @@ class UpdateManagerWindow(Gtk.Window):
         return grouped
 
     def _load_cached_updates_on_startup(self) -> None:
+        """Background worker: read cached package data, then hand off to the GTK thread."""
         updates: List[UpdateItem] = []
         total_bytes = 0
         error_msgs = []
 
-        enabled_backends = get_registry().get_all_backends()
-
-        for backend in enabled_backends:
+        for backend in get_registry().get_all_backends():
             try:
                 b_updates, b_bytes = backend.get_updates()
                 updates.extend(b_updates)
@@ -1266,10 +1307,21 @@ class UpdateManagerWindow(Gtk.Window):
             except Exception as exc:  # pylint: disable=broad-except
                 error_msgs.append(f"{backend.display_name}: {exc}")
 
+        GLib.idle_add(self._finish_startup_load, updates, total_bytes, error_msgs)
+
+    def _finish_startup_load(
+        self,
+        updates: List[UpdateItem],
+        total_bytes: int,
+        error_msgs: list[str],
+    ) -> bool:
+        """GTK-thread callback: populate the store after startup load completes."""
+        self._set_updates_loading(False)
+
         if error_msgs and not updates:
             self._clear_store()
             self._set_status(_("Failed to read cached package information."))
-            return
+            return False
 
         self._populate_store(updates)
         actionable = sum(
@@ -1277,6 +1329,7 @@ class UpdateManagerWindow(Gtk.Window):
             if getattr(u, "constraint", CONSTRAINT_NORMAL) == CONSTRAINT_NORMAL
         )
         self._update_count_status(actionable, total_bytes, cached=True)
+        return False
 
     # ------------------------------------------------------------------ #
     # Refresh flow                                                         #
@@ -1291,6 +1344,7 @@ class UpdateManagerWindow(Gtk.Window):
     ) -> bool:
         log.info(_("Refresh finished. %d updates. Success: %s"), len(updates), ok)
         self._set_refresh_busy(False)
+        self._set_updates_loading(False)
 
         # Always populate the store, even on fatal failure
         self._populate_store(updates)
@@ -1717,7 +1771,7 @@ class UpdateManagerWindow(Gtk.Window):
                 return
 
         self._set_refresh_busy(True)
-        self._set_status(_("Checking for updates..."))
+        self._set_updates_loading(True)
         log.info(_("Starting background refresh for updates."))
 
         worker = threading.Thread(target=self._refresh_worker, daemon=True)
@@ -1790,11 +1844,16 @@ class UpdateManagerWindow(Gtk.Window):
 
         self.stack.set_visible_child_name("updates")
         self._update_action_sensitivity()
+        # Enter the loading state immediately so the user sees activity
+        # as soon as the updates view snaps back into place.
+        self._set_updates_loading(True)
         # Use the non-privileged cached load path only — on_check_updates
         # would trigger backend.refresh() which prompts for pkexec
         # authentication on the APT backend, which is unacceptable UX
         # during simple back-navigation after install.
-        GLib.idle_add(self._load_cached_updates_on_startup)
+        threading.Thread(
+            target=self._load_cached_updates_on_startup, daemon=True
+        ).start()
 
     def on_install_child_exited(self, _terminal: Vte.Terminal,
                                 status: int) -> None:
