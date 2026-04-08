@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-04-06 15:53-0400\n"
+"POT-Creation-Date: 2026-04-08 04:34-0400\n"
 "PO-Revision-Date: 2026-04-01 10:03+0200\n"
 "Last-Translator: diekrz2 <diekrz2@bodhilinux.com>\n"
 "Language-Team: Bodhi Team\n"
@@ -542,6 +542,14 @@ msgstr "Installo pacchetti selezionati..."
 #: data/applications//bodhi-update-manager-tray.in:6
 msgid "Install system updates and local packages for Bodhi Linux"
 msgstr "Installa gli aggiornamenti e pacchetti locali per Bodhi Linux"
+
+#: data/polkit/org.bodhi.updatemanager.policy.in.h:1
+msgid "Run the Update Manager privileged helper"
+msgstr "Esegui l'aiutante privilegiato Update Manager"
+
+#: data/polkit/org.bodhi.updatemanager.policy.in.h:2
+msgid "Authentication is required to install or update packages."
+msgstr "L'autenticazione è necessaria per installare o aggiornare i pacchetti"
 
 #, python-format
 #~ msgid "%(message)s · Cached package data"
