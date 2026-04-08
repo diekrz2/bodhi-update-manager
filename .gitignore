@@ -31,6 +31,7 @@ data/applications/*.desktop
 *.build
 *.buildinfo
 *.changes
+data/polkit/*.policy
 
 # Python leftovers
 __pycache__/
